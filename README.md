@@ -19,7 +19,7 @@ Perfect for:
 
 ## Demo
 
-![Demo](https://github.com/miranda189923/Vellum/raw/main/demo.gif)
+![Demo](./demo.gif)
 
 ---
 
