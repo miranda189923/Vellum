@@ -17,6 +17,12 @@ Perfect for:
 
 ---
 
+## Demo
+
+![Demo](https://github.com/miranda189923/Vellum/raw/main/demo.gif)
+
+---
+
 ## Features
 
 ### Local-First Storage
@@ -41,12 +47,6 @@ Generate:
 - practice quizzes
 
 from any uploaded document.
-
----
-
-## Demo
-
-![Demo](./demo.gif)
 
 ---
 
