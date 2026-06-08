@@ -1,11 +1,10 @@
-// Server-side AI orchestration.
-// All provider API keys live here (loaded from environment) and never reach the browser.
+// All AI provider calls run here so API keys stay on the server, never the browser.
 import * as dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
 
-// Self-load env: ES-module imports execute before server.ts runs dotenv.config().
+// Load env here; imports run before server.ts calls dotenv.config().
 dotenv.config();
 
 export type AIProvider = "gemini" | "openai" | "grok" | "anthropic" | "groq" | "openrouter";
@@ -99,8 +98,7 @@ class ProviderManager {
 const manager = new ProviderManager();
 
 const gemini = (key: string) => new GoogleGenAI({ apiKey: key });
-// Fail fast (60s) and let our own retry layer handle backoff, instead of the SDK
-// silently retrying for minutes against a slow free endpoint.
+// Fail fast and let our own retry layer handle backoff, rather than the SDK retrying for minutes.
 const OAI_OPTS = { timeout: 90000, maxRetries: 0 } as const;
 const openai = (key: string) => new OpenAI({ apiKey: key, ...OAI_OPTS });
 const grok = (key: string) => new OpenAI({ apiKey: key, baseURL: "https://api.x.ai/v1", ...OAI_OPTS });
@@ -113,7 +111,6 @@ const openrouter = (key: string) => new OpenAI({
 });
 const anthropic = (key: string) => new Anthropic({ apiKey: key });
 
-// Returns an OpenAI-compatible client for the providers that share that API surface.
 const openAiCompatible = (provider: AIProvider, key: string) =>
   provider === "openai" ? openai(key)
   : provider === "groq" ? groq(key)
@@ -138,9 +135,7 @@ const QUESTION_ITEM_SCHEMA = {
   required: ["question", "type", "answer"],
 };
 
-// --- Response normalization ---
-// Free / OpenAI-compatible models often drift from the requested JSON shape
-// (snake_case keys, bare strings instead of objects). Coerce to the shape the client expects.
+// Free models often drift from the requested JSON shape (snake_case, bare strings); coerce it back.
 function pick(obj: any, ...keys: string[]) {
   for (const k of keys) if (obj?.[k] != null) return obj[k];
   return undefined;

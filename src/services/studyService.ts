@@ -1,11 +1,10 @@
 import { KeyConcept, PracticeQuestion, ReadingGuide } from "../types";
 
-// Thin client for the server-side AI API. Provider API keys live only on the server
-// (see aiService.ts) and are never shipped to the browser.
+// Thin client over the server-side AI API; provider keys live only on the server.
 
 const CHUNK_SIZE = 12000; // larger chunks = fewer (slow) AI calls per document
 const MAX_CHUNKS = 300;
-const MAX_CONCURRENT_CHUNKS = 3; // free-tier-friendly: cap parallel AI calls to avoid rate limits
+const MAX_CONCURRENT_CHUNKS = 3; // cap parallel AI calls to avoid rate limits
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -17,8 +16,7 @@ const splitIntoChunks = (text: string, size: number): string[] => {
   return chunks;
 };
 
-// POST JSON with a per-request timeout + retry/backoff on transient (rate-limit /
-// overload / timeout) errors, so one slow free-tier call can't stall forever.
+// POST JSON, with a timeout and retry/backoff on transient errors so a slow call can't stall forever.
 async function postJson<T>(url: string, body: unknown, retries = 4, timeoutMs = 120000): Promise<T> {
   for (let attempt = 0; ; attempt++) {
     const backoff = () => sleep(Math.min(1000 * 2 ** attempt, 8000) + Math.random() * 500);
@@ -68,7 +66,7 @@ async function postJson<T>(url: string, body: unknown, retries = 4, timeoutMs = 
   }
 }
 
-// Runs `worker` over items with a bounded number of concurrent calls, preserving order.
+// Run worker over items with bounded concurrency, preserving order.
 async function mapWithConcurrency<TIn, TOut>(
   items: TIn[],
   limit: number,
@@ -152,7 +150,7 @@ export const StudyService = {
 
     let contentToAnalyze = text;
     if (!text.trim() && fileData) {
-      if (onProgress) onProgress({ current: 0, total: 1 }); // OCR started
+      if (onProgress) onProgress({ current: 0, total: 1 });
       contentToAnalyze = await this.extractTextFromScannedFile(fileData);
     }
 
@@ -160,7 +158,6 @@ export const StudyService = {
       throw new Error("The document contains too little text to analyze.");
     }
 
-    // Chunking and progress stay client-side; each chunk's AI work runs on the server.
     const chunks = splitIntoChunks(contentToAnalyze, chunkSize).slice(0, MAX_CHUNKS);
     let completed = 0;
     if (onProgress) onProgress({ current: 0, total: chunks.length });
