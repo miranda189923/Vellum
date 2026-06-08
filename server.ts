@@ -6,6 +6,7 @@ import cors from "cors";
 import { createRequire } from "module";
 import fs from "fs";
 import * as dotenv from "dotenv";
+import { aiService } from "./aiService";
 
 // Load environment variables from .env file
 dotenv.config();
@@ -30,12 +31,6 @@ async function startServer() {
   const app = express();
   const PORT = 3000;
 
-  // Logging middleware for all API requests
-  app.use("/api", (req, res, next) => {
-    console.log(`[API] ${req.method} ${req.path}`);
-    next();
-  });
-
   app.use(cors());
   app.use(express.json({ limit: '50mb' }));
   app.use(express.urlencoded({ extended: true, limit: '50mb' }));
@@ -45,58 +40,61 @@ async function startServer() {
     res.json({ status: "ok" });
   });
 
-  // Expose AI configuration to the frontend (needed for client-side AI calls)
-  app.get("/api/ai-config", (req, res) => {
-    res.json({ 
-      AI_CONFIGS: process.env.AI_CONFIGS || process.env.VITE_AI_CONFIGS || "",
-      GEMINI_API_KEY: process.env.GEMINI_API_KEY || ""
-    });
+  // --- AI proxy routes: provider API keys stay on the server and never reach the browser ---
+  app.get("/api/ai/info", (req, res) => {
+    res.json(aiService.info());
   });
 
-  // API Route for file extraction (PDF and Text)
-  app.post("/api/extract-pdf", (req, res, next) => {
-    console.log("Received upload request to /api/extract-pdf");
-    next();
-  }, upload.single("pdf"), async (req: MulterRequest, res) => {
-    console.log("Multer processed file:", req.file);
+  const aiRoute = (handler: (body: any) => Promise<unknown>) =>
+    async (req: express.Request, res: express.Response) => {
+      try {
+        res.json(await handler(req.body ?? {}));
+      } catch (err: any) {
+        console.error("AI request failed:", err?.message || err);
+        res.status(err?.status || 500).json({ error: err?.message || "AI request failed" });
+      }
+    };
+
+  app.post("/api/ai/ocr", aiRoute((b) => aiService.ocr(b.fileData)));
+  app.post("/api/ai/analyze-chunk", aiRoute((b) => aiService.analyzeChunk(b.chunk, b.index, b.total)));
+  app.post("/api/ai/synthesize", aiRoute((b) => aiService.synthesize(b.summaries)));
+  app.post("/api/ai/more-questions", aiRoute((b) => aiService.moreQuestions(b.text, b.existingQuestions ?? [])));
+  app.post("/api/ai/topic-questions", aiRoute((b) => aiService.topicQuestions(b.text, b.topic)));
+  app.post("/api/ai/ask", aiRoute((b) => aiService.ask(b.documentText, b.userQuestion)));
+
+  // File extraction (PDF and plain text)
+  app.post("/api/extract-pdf", upload.single("pdf"), async (req: MulterRequest, res) => {
     try {
       if (!req.file) {
-        console.error("No file in request");
         return res.status(400).json({ error: "No file uploaded" });
       }
 
       const dataBuffer = fs.readFileSync(req.file.path);
-      console.log("Reading file buffer, size:", dataBuffer.length);
-      
       let extractedText = "";
-      
-      // Check if it's a PDF by magic bytes or extension
-      const isPdf = req.file.originalname.toLowerCase().endsWith(".pdf") || 
+
+      // Detect PDF by magic bytes or extension
+      const isPdf = req.file.originalname.toLowerCase().endsWith(".pdf") ||
                     (dataBuffer.length > 4 && dataBuffer.slice(0, 4).toString() === "%PDF");
 
       if (isPdf) {
         const data = await pdf(dataBuffer);
-        console.log("PDF parsed successfully, pages:", data.numpages);
         extractedText = data.text;
       } else {
-        // Try reading as text
         extractedText = dataBuffer.toString("utf-8");
-        console.log("File read as text, length:", extractedText.length);
       }
 
-      // Clean up uploaded file
       fs.unlinkSync(req.file.path);
 
       res.json({
         text: extractedText,
         title: req.file.originalname,
-        isPossiblyScanned: !extractedText.trim() && isPdf
+        isPossiblyScanned: !extractedText.trim() && isPdf,
       });
     } catch (error) {
-      console.error("File Extraction Error:", error);
-      res.status(500).json({ 
+      console.error("File extraction error:", error);
+      res.status(500).json({
         error: "Failed to extract text from file",
-        details: error instanceof Error ? error.message : String(error)
+        details: error instanceof Error ? error.message : String(error),
       });
     }
   });
