@@ -8,7 +8,7 @@ const MAX_CONCURRENT_CHUNKS = 3; // cap parallel AI calls to avoid rate limits
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-const splitIntoChunks = (text: string, size: number): string[] => {
+export const splitIntoChunks = (text: string, size: number): string[] => {
   const chunks: string[] = [];
   for (let i = 0; i < text.length; i += size) {
     chunks.push(text.substring(i, i + size));
@@ -67,7 +67,7 @@ async function postJson<T>(url: string, body: unknown, retries = 4, timeoutMs = 
 }
 
 // Run worker over items with bounded concurrency, preserving order.
-async function mapWithConcurrency<TIn, TOut>(
+export async function mapWithConcurrency<TIn, TOut>(
   items: TIn[],
   limit: number,
   worker: (item: TIn, index: number) => Promise<TOut>

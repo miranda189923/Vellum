@@ -3,6 +3,7 @@ import * as dotenv from "dotenv";
 import { GoogleGenAI, Type } from "@google/genai";
 import OpenAI from "openai";
 import Anthropic from "@anthropic-ai/sdk";
+import { normalizeChunk, normalizeQuestion } from "./normalize";
 
 // Load env here; imports run before server.ts calls dotenv.config().
 dotenv.config();
@@ -134,52 +135,6 @@ const QUESTION_ITEM_SCHEMA = {
   },
   required: ["question", "type", "answer"],
 };
-
-// Free models often drift from the requested JSON shape (snake_case, bare strings); coerce it back.
-function pick(obj: any, ...keys: string[]) {
-  for (const k of keys) if (obj?.[k] != null) return obj[k];
-  return undefined;
-}
-
-function normalizeConcept(c: any) {
-  if (typeof c === "string") return { concept: c, definition: "" };
-  return {
-    concept: pick(c, "concept", "term", "name") ?? "",
-    definition: pick(c, "definition", "meaning", "description") ?? "",
-  };
-}
-
-function normalizeQuestion(q: any) {
-  if (typeof q === "string") return { question: q, type: "short-answer", answer: "" };
-  const type = pick(q, "type");
-  const allowed = ["multiple-choice", "short-answer", "true-false", "numeric"];
-  return {
-    question: pick(q, "question", "prompt", "text") ?? "",
-    type: allowed.includes(type) ? type : "short-answer",
-    options: pick(q, "options", "choices"),
-    answer: String(pick(q, "answer", "correct_answer", "correctAnswer") ?? ""),
-  };
-}
-
-function toStringArray(v: any): string[] {
-  if (!Array.isArray(v)) return [];
-  return v.map((x) => (typeof x === "string" ? x : pick(x, "question", "text", "takeaway") ?? JSON.stringify(x)));
-}
-
-function normalizeChunk(raw: any) {
-  const concepts = pick(raw, "keyConcepts", "key_concepts", "concepts");
-  const questions = pick(raw, "practiceQuestions", "practice_questions", "questions");
-  const guide = pick(raw, "readingGuide", "reading_guide") ?? {};
-  return {
-    summary: pick(raw, "summary", "overview") ?? "",
-    keyConcepts: (Array.isArray(concepts) ? concepts : []).map(normalizeConcept),
-    practiceQuestions: (Array.isArray(questions) ? questions : []).map(normalizeQuestion),
-    readingGuide: {
-      preReadingQuestions: toStringArray(pick(guide, "preReadingQuestions", "pre_reading_questions")),
-      keyTakeaways: toStringArray(pick(guide, "keyTakeaways", "key_takeaways")),
-    },
-  };
-}
 
 const asQuestionArray = (data: any) =>
   (Array.isArray(data) ? data : data?.questions || []).map(normalizeQuestion);

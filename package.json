@@ -1,15 +1,36 @@
 {
-  "name": "react-example",
+  "name": "vellum",
+  "version": "1.0.0",
   "private": true,
-  "version": "0.0.0",
   "type": "module",
+  "description": "A local-first AI study companion that turns documents into summaries, quizzes, guided reading, and chat.",
+  "author": "miranda189923",
+  "license": "MIT",
+  "homepage": "https://github.com/miranda189923/Vellum#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/miranda189923/Vellum.git"
+  },
+  "bugs": {
+    "url": "https://github.com/miranda189923/Vellum/issues"
+  },
+  "keywords": [
+    "ai",
+    "study-tool",
+    "react",
+    "typescript",
+    "vite",
+    "local-first",
+    "education"
+  ],
   "scripts": {
     "dev": "tsx server.ts",
     "start": "tsx server.ts",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
@@ -50,6 +71,7 @@
     "autoprefixer": "^10.4.21",
     "tailwindcss": "^4.1.14",
     "typescript": "~5.8.2",
-    "vite": "^6.2.0"
+    "vite": "^6.2.0",
+    "vitest": "^2.1.9"
   }
 }
