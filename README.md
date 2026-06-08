@@ -2,11 +2,6 @@
 
 **Vellum** is a local-first AI study companion that turns documents into summaries, key concepts, quizzes, guided reading, and interactive chat while keeping your data on your device.
 
-![CI](https://github.com/miranda189923/Vellum/actions/workflows/ci.yml/badge.svg)
-![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
-![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
-
 🔗 **Demo:**
 
 ![Demo](demo.gif)
